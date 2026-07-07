@@ -1,14 +1,19 @@
 local Packets = require(game:GetService("ReplicatedStorage").Modules.Packets)
 local oldSwing = Packets.SwingTool.send
 
--- Fungsi buat ngebongkar isi table ke chat
+-- Fungsi bongkar table yang udah kebal CFrame / Vector3
 local function printTableStructure(tbl, indent)
     indent = indent or ""
     for k, v in pairs(tbl) do
         local typeV = type(v)
         local displayValue = tostring(v)
-        if typeV == "userdata" and v.ClassName then
-            displayValue = v.Name .. " (" .. v.ClassName .. ")"
+        
+        -- Cek aman pake pcall biar ga crash kalau tipe datanya aneh
+        local success, className = pcall(function() return v.ClassName end)
+        if success and className then
+            displayValue = v.Name .. " (" .. className .. ")"
+        elseif typeV == "userdata" then
+            displayValue = tostring(v) .. " (Userdata/Struct)"
         end
         
         game:GetService("StarterGui"):SetCore("ChatMakeSystemMessage", {
@@ -22,7 +27,7 @@ local function printTableStructure(tbl, indent)
     end
 end
 
--- Kita bégal fungsi send-nya
+-- Bégal ulang fungsi send
 Packets.SwingTool.send = function(...)
     local args = {...}
     game:GetService("StarterGui"):SetCore("ChatMakeSystemMessage", {
@@ -44,6 +49,6 @@ Packets.SwingTool.send = function(...)
 end
 
 game:GetService("StarterGui"):SetCore("ChatMakeSystemMessage", {
-    Text = "Mata-mata SwingTool aktif! Silakan pukul Gold Node 1 kali secara manual.",
+    Text = "Mata-mata v2 Aktif! Coba pukul Gold Node-nya sekali lagi, bro.",
     Color = Color3.fromRGB(0, 255, 255);
 })
