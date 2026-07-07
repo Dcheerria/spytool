@@ -1,54 +1,63 @@
-local Packets = require(game:GetService("ReplicatedStorage").Modules.Packets)
-local oldSwing = Packets.SwingTool.send
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterGui = game:GetService("StarterGui")
 
--- Fungsi bongkar table yang udah kebal CFrame / Vector3
-local function printTableStructure(tbl, indent)
-    indent = indent or ""
+-- Fungsi aman buat nge-print isi table ke chat
+local function dump(tbl, indent)
+    indent = indent or "  "
     for k, v in pairs(tbl) do
-        local typeV = type(v)
-        local displayValue = tostring(v)
-        
-        -- Cek aman pake pcall biar ga crash kalau tipe datanya aneh
-        local success, className = pcall(function() return v.ClassName end)
-        if success and className then
-            displayValue = v.Name .. " (" .. className .. ")"
-        elseif typeV == "userdata" then
-            displayValue = tostring(v) .. " (Userdata/Struct)"
+        local display = tostring(v)
+        if type(v) == "userdata" then
+            display = v.ClassName and (v.Name .. " (" .. v.ClassName .. ")") or tostring(v)
         end
-        
-        game:GetService("StarterGui"):SetCore("ChatMakeSystemMessage", {
-            Text = indent .. tostring(k) .. " : " .. displayValue .. " [" .. typeV .. "]",
-            Color = Color3.fromRGB(255, 200, 0);
-        })
-        
-        if typeV == "table" then
-            printTableStructure(v, indent .. "   ")
-        end
-    end
-end
-
--- Bégal ulang fungsi send
-Packets.SwingTool.send = function(...)
-    local args = {...}
-    game:GetService("StarterGui"):SetCore("ChatMakeSystemMessage", {
-        Text = "=== SWINGTOOL DETECTED ===",
-        Color = Color3.fromRGB(255, 50, 50);
-    })
-    
-    for i, arg in ipairs(args) do
-        if type(arg) == "table" then
-            printTableStructure(arg, "  ")
-        else
-            game:GetService("StarterGui"):SetCore("ChatMakeSystemMessage", {
-                Text = " Arg ["..i.."]: " .. tostring(arg) .. " ["..type(arg).."]",
-                Color = Color3.fromRGB(100, 200, 255);
+        pcall(function()
+            StarterGui:SetCore("ChatMakeSystemMessage", {
+                Text = indent .. tostring(k) .. " : " .. display,
+                Color = Color3.fromRGB(255, 215, 0)
             })
+        end)
+        if type(v) == "table" then
+            dump(v, indent .. "   ")
         end
     end
-    return oldSwing(...)
 end
 
-game:GetService("StarterGui"):SetCore("ChatMakeSystemMessage", {
-    Text = "Mata-mata v2 Aktif! Coba pukul Gold Node-nya sekali lagi, bro.",
-    Color = Color3.fromRGB(0, 255, 255);
-})
+-- Cari modul Packets langsung dari memory
+local Packets = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Packets"))
+
+if Packets and Packets.SwingTool and Packets.SwingTool.send then
+    local originalSend = Packets.SwingTool.send
+    
+    Packets.SwingTool.send = function(...)
+        local args = {...}
+        pcall(function()
+            StarterGui:SetCore("ChatMakeSystemMessage", {
+                Text = "🎯 SWINGTOOL NYANGKUT! DAFTAR ARGUMEN:",
+                Color = Color3.fromRGB(0, 255, 255)
+            })
+        end)
+        
+        for i, arg in ipairs(args) do
+            if type(arg) == "table" then
+                dump(arg)
+            else
+                pcall(function()
+                    StarterGui:SetCore("ChatMakeSystemMessage", {
+                        Text = "  [" .. i .. "] " .. tostring(arg) .. " (" .. type(arg) .. ")",
+                        Color = Color3.fromRGB(100, 200, 255)
+                    })
+                end)
+            end
+        end
+        return originalSend(...)
+    end
+    
+    StarterGui:SetCore("ChatMakeSystemMessage", {
+        Text = "🟢 Sistem bégal v3 sukses terpasang! Silakan ayunkan alat lu, bro.",
+        Color = Color3.fromRGB(0, 255, 128)
+    })
+else
+    StarterStorage:SetCore("ChatMakeSystemMessage", {
+        Text = "❌ Gagal nemu struktur Packets.SwingTool.send",
+        Color = Color3.fromRGB(255, 80, 80)
+    })
+end
